@@ -11,6 +11,7 @@ mvsum(
   markup = T,
   sanitize = T,
   nicenames = T,
+  CIwidth = 0.95,
   expnt = NULL
 )
 }
@@ -26,6 +27,8 @@ mvsum(
 \item{sanitize}{boolean indicating if you want to sanitize all strings to not break LaTeX}
 
 \item{nicenames}{boolean indicating if you want to replace . and _ in strings with a space}
+
+\item{CIwidth}{level of significance for computing the confidence intervals, default is 0.95}
 
 \item{expnt}{defaults to null but can be set to false if you want unexponentiated estimates from a log or logit model}
 }

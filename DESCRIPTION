@@ -1,0 +1,28 @@
+Package: myReportRx
+Type: Package
+Title: Adaptation on ReportRx for Markdown
+Version: 0.1.0
+Authors@R: person("Lisa","Avery",email="lisa.avery@uhnresearch.ca",role = c('aut','cre'))
+Description: Reporting tools for general use.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    aod,
+    dplyr,
+    ggplot2,
+    ggpubr,
+    MASS,
+    reshape,
+    stats,
+    survival,
+    utils,
+    xtable,
+    Matrix,
+    knitr,
+    kableExtra,
+    pander,
+    caret,
+    Hmisc,
+    tibble
+RoxygenNote: 7.1.1

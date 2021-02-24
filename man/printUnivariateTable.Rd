@@ -2,7 +2,9 @@
 % Please edit documentation in R/main.R
 \name{printUnivariateTable}
 \alias{printUnivariateTable}
-\title{Output several univariate models nicely}
+\title{Output several univariate models nicely.
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.}
 \usage{
 printUnivariateTable(
   response,
@@ -42,5 +44,7 @@ printUnivariateTable(
 \item{...}{other variables passed to uvsum and the table output functions}
 }
 \description{
-Output several univariate models nicely
+Output several univariate models nicely.
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{covsum}
 \alias{covsum}
-\title{Get covariate summary dataframe}
+\title{Returns a dataframe corresponding to a descriptive table}
 \usage{
 covsum(
   data,

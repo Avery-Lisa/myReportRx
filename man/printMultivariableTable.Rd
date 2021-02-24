@@ -2,7 +2,9 @@
 % Please edit documentation in R/main.R
 \name{printMultivariableTable}
 \alias{printMultivariableTable}
-\title{Output a multivariable model nicely}
+\title{Output a multivariable model nicely
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.}
 \usage{
 printMultivariableTable(
   model,
@@ -31,4 +33,6 @@ printMultivariableTable(
 }
 \description{
 Output a multivariable model nicely
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.
 }

@@ -2,7 +2,9 @@
 % Please edit documentation in R/main.R
 \name{printCovsum}
 \alias{printCovsum}
-\title{Returns a dataframe corresponding to a descriptive table}
+\title{Returns a dataframe corresponding to a descriptive table
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.}
 \usage{
 printCovsum(
   data,
@@ -14,7 +16,7 @@ printCovsum(
   showIQR = FALSE,
   tableOnly = FALSE,
   covTitle = "Covariate",
-  tblWidth = Inf,
+  chunk_label,
   ...
 )
 }
@@ -37,7 +39,7 @@ printCovsum(
 
 \item{covTitle}{character with the names of the covariate column}
 
-\item{tblWidth}{for word docs and pander tables only, specifies the width to break tables at, defaults to no breaks}
+\item{chunk_label}{only used if out_fmt = doc to allow cross-referencing}
 
 \item{...}{other variables passed to covsum and the table output function}
 }
@@ -46,6 +48,8 @@ A formatted table displaying a summary of the covariates stratified by maincov
 }
 \description{
 Returns a dataframe corresponding to a descriptive table
+The default output is a kable table for use in pdfs or html, but pander tables can be produced
+for Word documents by specifying options('doc_type'='doc') in the setup chunk of the markdown document.
 }
 \seealso{
 \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}

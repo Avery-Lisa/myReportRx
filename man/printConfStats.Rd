@@ -2,9 +2,15 @@
 % Please edit documentation in R/main.R
 \name{printConfStats}
 \alias{printConfStats}
-\title{Nicely display statisticis from a confusion matrix from the caret package}
+\title{Nicely display statistics from a confusion matrix from the caret package}
 \usage{
-printConfStats(confMtrx, digits = 2, what = c(1, 2, 3, 4, 12), caption = NULL)
+printConfStats(
+  confMtrx,
+  digits = 2,
+  what = c(1, 2, 3, 4, 12),
+  caption = NULL,
+  tblOnly = FALSE
+)
 }
 \arguments{
 \item{confMtrx}{a confusion matrix from the caret package}
@@ -14,7 +20,9 @@ printConfStats(confMtrx, digits = 2, what = c(1, 2, 3, 4, 12), caption = NULL)
 \item{what}{which stats to show, see caret package for details}
 
 \item{caption}{table caption}
+
+\item{tblOnly}{should a dataframe or a formatted object be returned}
 }
 \description{
-Nicely display statisticis from a confusion matrix from the caret package
+Nicely display statistics from a confusion matrix from the caret package
 }
