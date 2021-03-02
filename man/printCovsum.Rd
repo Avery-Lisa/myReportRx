@@ -39,7 +39,7 @@ printCovsum(
 
 \item{covTitle}{character with the names of the covariate column}
 
-\item{chunk_label}{only used if out_fmt = doc to allow cross-referencing}
+\item{chunk_label}{only used if options("doc_type"='doc') is set allow cross-referencing}
 
 \item{...}{other variables passed to covsum and the table output function}
 }

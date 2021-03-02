@@ -17,6 +17,7 @@ printUnivariateTable(
   tableOnly = FALSE,
   removeInf = T,
   HolmGlobalp = FALSE,
+  chunk_label,
   ...
 )
 }
@@ -40,6 +41,8 @@ printUnivariateTable(
 \item{removeInf}{boolean indicating if infinite estimates should be removed from the table}
 
 \item{HolmGlobalp}{boolean indicting if a Holm-corrected p-value should be presented}
+
+\item{chunk_label}{only used if options("doc_type"='doc') is set allow cross-referencing}
 
 \item{...}{other variables passed to uvsum and the table output functions}
 }

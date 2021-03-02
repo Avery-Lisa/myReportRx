@@ -13,7 +13,8 @@ printMultivariableTable(
   showN = T,
   tableOnly = FALSE,
   HolmGlobalp = FALSE,
-  expnt = NULL
+  expnt = NULL,
+  chunk_label
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ printMultivariableTable(
 \item{HolmGlobalp}{boolean indicting if a Holm-corrected p-value should be presented}
 
 \item{expnt}{defaults to NULL can be set to FALSE for log and logit link models}
+
+\item{chunk_label}{only used if options("doc_type"='doc') is set allow cross-referencing}
 }
 \description{
 Output a multivariable model nicely

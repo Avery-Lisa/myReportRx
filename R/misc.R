@@ -12,7 +12,7 @@ crrRx<-function(f,data){
   k<-as.character(f)[3]
   covs<-removedollar(k)
   ff<-modelmatrix(f,data)
-  m1<-crr(ff[[1]][,1],ff[[1]][,2],ff[[2]])
+  m1<-cmprsk::crr(ff[[1]][,1],ff[[1]][,2],ff[[2]])
   m1$call<-paste("~",covs)
   return(m1)
 }
@@ -39,7 +39,7 @@ boxcoxfitRx<-function(f,data,lambda=F){
   temp<-modelmatrix(f2,df1)
   ff<-list(temp[[1]][,-1,drop=F],temp[[2,drop=F]])
   temp<-temp[[1]][,1,drop=F]
-  lambda1<-unlist(unlist(boxcoxfit(ff[[1]],ff[[2]],lambda2=T))[1:2])
+  lambda1<-unlist(unlist(geoR::boxcoxfit(ff[[1]],ff[[2]],lambda2=T))[1:2])
   ff[[1]]<-((ff[[1]]+lambda1[2])^lambda1[1]-1)/lambda1[1]
   df<-merge(df1,temp,by="tempindexboxcoxfitRx")[,-1,drop=F]
   df[,time]<-ff[[1]]

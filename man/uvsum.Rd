@@ -29,7 +29,7 @@ uvsum(
 \item{adj_cov}{character vector containing covariates to adjust for in each (no longer univariate) model}
 
 \item{type}{string indicating he type of univariate model to fit. The function will try and guess what type you want based on your response. If you want to override this you can manually specify the type.
-Options in clude "linear", "logistic", "coxph", "crr", "boxcox","logistic"}
+Options include "linear", "logistic", "coxph", "crr", "boxcox","logistic"}
 
 \item{strata}{character vector of covariates to stratify by. Only used for coxph and crr}
 

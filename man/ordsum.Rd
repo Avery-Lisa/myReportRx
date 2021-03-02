@@ -47,8 +47,10 @@ ordsum(
 
 \item{digits}{number of digits to display, defaults to}
 
-\item{CIwidth}{level of significance for computing the confidence intervals, default is 0.95
-#'@return A formatted table displaying the odds ratio associated with each covariate}
+\item{CIwidth}{level of significance for computing the confidence intervals, default is 0.95}
+}
+\value{
+A formatted table displaying the odds ratio associated with each covariate
 }
 \description{
 Fit and format an ordinal logistic regression using polr from the {MASS} package. The parallel regression assumption can
