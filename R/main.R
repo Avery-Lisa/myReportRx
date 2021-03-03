@@ -1094,14 +1094,6 @@ ordsum    <- function(data, covs, response,reflevel='NULL',markup=FALSE,sanitize
 #' @importFrom ggpubr ggarrange
 #' @export
 plot_univariate <- function(response,covs,data,showN=FALSE,na.rm=TRUE,response_title=NULL){
-  # if (!class(data[[response]])[1] %in% c('factor','ordered','numeric')) {
-  #   stop('Response variable must be numeric or factor.')
-  # }
-  # bad_covs = sapply(covs,function(x) !class(data[[x]])[1] %in% c('factor','ordered','numeric'))
-  # if (sum(bad_covs)>0){
-  #   stop(paste('The following variables are neither numeric nor factors and can not be covariates:',c(covs[bad_covs])))
-  # }
-
   for (v in c(response,covs)){
     if (class(data[[v]])=='character') data[[v]] <- factor(data[[v]])
   }
@@ -1113,17 +1105,17 @@ plot_univariate <- function(response,covs,data,showN=FALSE,na.rm=TRUE,response_t
     levels(data[[response]]) = niceStr(levels(data[[response]]))
     for (x_var in covs){
       # remove missing data, if requested
-      if (na.rm) pdata = na.omit(data[,c(response,x_var)]) else pdata = data[,c(response,x_var)]
+      if (na.rm) pdata = stats::na.omit(data[,c(response,x_var)]) else pdata = data[,c(response,x_var)]
 
       if (class(pdata[[x_var]])[1] =='numeric' ){
-        p <- ggplot(data=pdata, aes_string(y=response,x=x_var,fill=response)) +
+        p <- ggplot(data=pdata, aes(y=.data[[response]],x=.data[[x_var]],fill=.data[[response]])) +
           geom_boxplot()
         if (showN){
           p=  p+
             stat_summary(geom='text',fun.data = lbl_count,vjust=-0.5,hjust=1)
         }
       } else {
-        p <- ggplot(data=pdata, aes_string(x=x_var,fill=response)) +
+        p <- ggplot(data=pdata, aes(x=.data[[x_var]],fill=.data[[response]])) +
           geom_bar(position='fill') +
           scale_x_discrete(labels= function(x) wrp_lbl(x))
         if (showN){
@@ -1145,13 +1137,13 @@ plot_univariate <- function(response,covs,data,showN=FALSE,na.rm=TRUE,response_t
   } else{
     for (x_var in covs){
       # remove missing data, if requested
-      if (na.rm) pdata = na.omit(data[,c(response,x_var)]) else pdata = data[,c(response,x_var)]
+      if (na.rm) pdata = stats::na.omit(data[,c(response,x_var)]) else pdata = data[,c(response,x_var)]
 
       if (class(pdata[[x_var]])[1] =='numeric' ){
-        p <- ggplot(data=pdata, aes_string(y=response,x=x_var)) +
+        p <- ggplot(data=pdata, aes(y=.data[[response]],x=.data[[x_var]])) +
           geom_point()
       } else
-        p <- ggplot(data=pdata, aes_string(y=response,x=x_var,fill=response)) +
+        p <- ggplot(data=pdata, aes(y=.data[[response]],x=.data[[x_var]],fill=.data[[response]])) +
           geom_boxplot() +
           scale_x_discrete(labels= function(x) wrp_lbl(x))
       if (showN){
@@ -1175,7 +1167,6 @@ plot_univariate <- function(response,covs,data,showN=FALSE,na.rm=TRUE,response_t
             ncol=2,
             nrow=ceiling(length(plist)/2))
 }
-
 
 #'Outputs a ggplot to test whether numeric predictors are linear in logit
 #'
@@ -1418,6 +1409,19 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
 
 }
 
+#' Extract a confusion matrix from a binary glm
+#' @param glm_fit an glm object with family - 'binomial'
+#' @export
+lr_cmat <- function(glm_fit){
+  if (class(glm_fit)[1] !='glm') stop('glm_fit must be output from glm.')
+  if (glm_fit$family$family !='binomial') stop('glm_fit must be a binary logistic regression.')
+
+  ref = glm_fit$model[,1]
+  caret::confusionMatrix(data=factor(ifelse(predict(glm_fit,type='response')<.5,levels(ref)[1],levels(ref)[2])),
+                                 reference = ref)
+}
+
+#'
 #' Nicely display a confusion matrix from the caret package
 #' @param confMtrx a confusion matrix from the caret package
 #' @param caption table caption
