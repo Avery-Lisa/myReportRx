@@ -1349,6 +1349,9 @@ niceTable <- function(tab,rmstr = "[._]",digits=2,to_indent=numeric(0),to_bold=n
 #' @export
 outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,chunk_label,...){
 
+  # strip tibble aspects
+  tab=as.data.frame(tab)
+
   out_fmt = ifelse(is.null(getOption('doc_type')),'pdf',getOption('doc_type'))
   out_fmt =ifelse(out_fmt%in%c('doc','docx'),'doc','pdf')
   chunk_label = ifelse(missing(chunk_label),'NOLABELTOADD',chunk_label)
