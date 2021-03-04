@@ -371,8 +371,8 @@ covsum<-function(data,covs,maincov=NULL,numobs=NULL,markup=TRUE,sanitize=TRUE,ni
           } else {
             if(all(c(sumCov['Median'],sumCov["Min."],sumCov["Max."]) ==floor(c(sumCov['Median'],sumCov["Min."],sumCov["Max."])))){
               paste(sumCov["Median"], " (", sumCov["Min."], ",",sumCov["Max."], ")", sep = "")
-              } else {paste(niceNum(sumCov['Median'],digits), " (", niceNum(sumCov["Min."],digits), ",", niceNum(sumCov["Max."],digits),")", sep = "")}
-        }}
+            } else {paste(niceNum(sumCov['Median'],digits), " (", niceNum(sumCov["Min."],digits), ",", niceNum(sumCov["Max."],digits),")", sep = "")}
+          }}
         tbl <- c(meansd, mmm, lbld(missing))
 
         return(tbl)}
@@ -1417,8 +1417,11 @@ lr_cmat <- function(glm_fit){
   if (glm_fit$family$family !='binomial') stop('glm_fit must be a binary logistic regression.')
 
   ref = glm_fit$model[,1]
+  if (is.null(levels(ref))) ref=factor(ref)
   caret::confusionMatrix(data=factor(ifelse(predict(glm_fit,type='response')<.5,levels(ref)[1],levels(ref)[2])),
-                                 reference = ref)
+                         reference = ref,
+                         positive = levels(ref)[2]
+  )
 }
 
 #'
@@ -1486,7 +1489,7 @@ printConfStats <- function(confMtrx,digits=2,what=c(1,2,3,4,12),caption=NULL,tbl
 #'@keywords ordinal regression, Brant test
 #'@export
 #'
-printOrdsum <- function(data, covs, response, reflevel='NULL', caption = NULL, showN=T,
+rm_ordsum <- function(data, covs, response, reflevel='NULL', caption = NULL, showN=T,
                         mv=FALSE,excludeLevels=NULL,testPO=TRUE,digits=2,CIwidth=0.95){
 
 
@@ -1545,7 +1548,7 @@ printOrdsum <- function(data, covs, response, reflevel='NULL', caption = NULL, s
 #'@return A formatted table displaying a summary of the covariates stratified by maincov
 #'@export
 #'@seealso \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}
-printCovsum <- function(data,covs,maincov=NULL,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,tableOnly=FALSE,covTitle='Covariate',
+rm_covsum <- function(data,covs,maincov=NULL,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,tableOnly=FALSE,covTitle='Covariate',
                         chunk_label,...){
 
   tab <- covsum(data,covs,maincov,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,sanitize=FALSE,...)
@@ -1600,7 +1603,7 @@ printCovsum <- function(data,covs,maincov=NULL,caption=NULL,excludeLevels=NULL,s
 #' @param chunk_label only used if options("doc_type"='doc') is set allow cross-referencing
 #' @param ... other variables passed to uvsum and the table output functions
 #' @export
-printUnivariateTable <- function(response, covs , data ,adj_cov=NULL, caption=NULL,showP=T,showN=T,tableOnly=FALSE,removeInf=T,HolmGlobalp=FALSE,chunk_label,...){
+rm_uvsum <- function(response, covs , data ,adj_cov=NULL, caption=NULL,showP=T,showN=T,tableOnly=FALSE,removeInf=T,HolmGlobalp=FALSE,chunk_label,...){
 
   # get the table
   tab <- uvsum(response,covs,data,adj_cov=NULL,markup = FALSE,showN=showN,sanitize=FALSE,...)
@@ -1692,7 +1695,7 @@ printUnivariateTable <- function(response, covs , data ,adj_cov=NULL, caption=NU
 #' @param expnt defaults to NULL can be set to FALSE for log and logit link models
 #' @param chunk_label only used if options("doc_type"='doc') is set allow cross-referencing
 #' @export
-printMultivariableTable <- function(model , data ,caption=NULL,showN=T,tableOnly=FALSE,HolmGlobalp=FALSE,expnt=NULL,chunk_label){
+rm_mvsum <- function(model , data ,caption=NULL,showN=T,tableOnly=FALSE,HolmGlobalp=FALSE,expnt=NULL,chunk_label){
 
   # get the table
   tab <- mvsum(model=model,data=data,showN=showN,markup = FALSE, sanitize = FALSE, nicenames = T,expnt=expnt)
