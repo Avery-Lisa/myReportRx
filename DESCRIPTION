@@ -26,7 +26,8 @@ Imports:
     Hmisc,
     tibble,
     geoR,
-    cmprsk
+    cmprsk,
+    ROCR
 RoxygenNote: 7.1.1
 Suggests: 
     testthat (>= 3.0.0)

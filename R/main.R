@@ -1412,7 +1412,9 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
 
 }
 
-#' Extract a confusion matrix from a binary glm
+#' Extract a confusion matrix from a binary glm object using the cutpoint
+#' that maximises the Youden Index (sensitivity+specificity).
+#' Returns a confusion matrix from the caret package, with the cut-off added to the output list.
 #' @param glm_fit an glm object with family - 'binomial'
 #' @export
 lr_cmat <- function(glm_fit){
@@ -1421,10 +1423,18 @@ lr_cmat <- function(glm_fit){
 
   ref = glm_fit$model[,1]
   if (is.null(levels(ref))) ref=factor(ref)
-  caret::confusionMatrix(data=factor(ifelse(predict(glm_fit,type='response')<.5,levels(ref)[1],levels(ref)[2])),
+  pred_vals <- predict(glm_fit,type='response')
+  pred <- ROCR::prediction(pred_vals,ref)
+  perf_obj <- ROCR::performance(pred,"tpr","fpr")
+                   Youden = perf_obj@y.values[[1]]-perf_obj@x.values[[1]]
+                   cutoff = perf_obj@alpha.values[[1]]
+  cutpoint = cutoff[which.max(Youden)]
+
+  x = caret::confusionMatrix(data=factor(ifelse(pred_vals<.cutpoint,levels(ref)[1],levels(ref)[2])),
                          reference = ref,
-                         positive = levels(ref)[2]
-  )
+                         positive = levels(ref)[2])
+  x[['cut-off']] = cutpoint
+  x
 }
 
 #'
