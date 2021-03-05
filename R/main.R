@@ -1430,7 +1430,7 @@ lr_cmat <- function(glm_fit){
                    cutoff = perf_obj@alpha.values[[1]]
   cutpoint = cutoff[which.max(Youden)]
 
-  x = caret::confusionMatrix(data=factor(ifelse(pred_vals<.cutpoint,levels(ref)[1],levels(ref)[2])),
+  x = caret::confusionMatrix(data=factor(ifelse(pred_vals<cutpoint,levels(ref)[1],levels(ref)[2])),
                          reference = ref,
                          positive = levels(ref)[2])
   x[['cut-off']] = cutpoint
