@@ -2,13 +2,19 @@
 % Please edit documentation in R/main.R
 \name{lr_cmat}
 \alias{lr_cmat}
-\title{Extract a confusion matrix from a binary glm}
+\title{Extract a confusion matrix from a binary glm object. An optional cutpoint can
+be specified, otherwise the cutpoint that maximises the Youden index is used.
+Returns a confusion matrix from the caret package, with the cut-off added to the output list.}
 \usage{
-lr_cmat(glm_fit)
+lr_cmat(glm_fit, cutpoint)
 }
 \arguments{
 \item{glm_fit}{an glm object with family - 'binomial'}
+
+\item{cutpoint}{optional cutpoint for categories responses, must be between 0 and 1}
 }
 \description{
-Extract a confusion matrix from a binary glm
+Extract a confusion matrix from a binary glm object. An optional cutpoint can
+be specified, otherwise the cutpoint that maximises the Youden index is used.
+Returns a confusion matrix from the caret package, with the cut-off added to the output list.
 }

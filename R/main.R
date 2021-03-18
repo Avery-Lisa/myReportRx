@@ -237,6 +237,7 @@ petsum<-function(data,response,group=1,times=c(12,14),units="months"){
 #'@param data dataframe containing data
 #'@param covs character vector with the names of columns to include in table
 #'@param maincov covariate to stratify table by
+#'@param digits the number of digits to round continuous variables to, defaults to 1
 #'@param numobs named list overriding the number of people you expect to have the covariate
 #'@param markup boolean indicating if you want latex markup
 #'@param sanitize boolean indicating if you want to sanitize all strings to not break LaTeX
@@ -250,10 +251,10 @@ petsum<-function(data,response,group=1,times=c(12,14),units="months"){
 #'@return A formatted table displaying a summary of the covariates stratified by maincov
 #'@export
 #'@seealso \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}
-covsum<-function(data,covs,maincov=NULL,numobs=NULL,markup=TRUE,sanitize=TRUE,nicenames=TRUE, IQR = FALSE, digits.cat = 0,
+covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitize=TRUE,nicenames=TRUE, IQR = FALSE, digits.cat = 0,
                  testcont = c('rank-sum test','ANOVA'), testcat = c('Chi-squared','Fisher'),excludeLevels=NULL){
   # 26 Feb 2020 - start incorporating digits into the code
-  digits=1
+
   # New LA 18 Feb, test for presence of variables in data and convert character to factor
   missing_vars = setdiff(covs,names(data))
   if (length(missing_vars)>0){
@@ -267,7 +268,9 @@ covsum<-function(data,covs,maincov=NULL,numobs=NULL,markup=TRUE,sanitize=TRUE,ni
     addspace<-identity
     lpvalue<-identity
   }
+  digits <- as.integer(digits)
   digits.cat <- as.integer(digits.cat)
+  if( digits<0 ) stop("parameter 'digits' cannot be negative!")
   if( digits.cat<0 ) stop("parameter 'digits.cat' cannot be negative!")
   if(!sanitize) sanitizestr<-identity
   if(!nicenames) nicename<-identity
@@ -1162,7 +1165,7 @@ plot_univariate <- function(response,covs,data,showN=FALSE,na.rm=TRUE,response_t
     }
 
   }
-  ggarrange(plotlist=plist,
+  ggpubr::ggarrange(plotlist=plist,
             common.legend = T,
             ncol=2,
             nrow=ceiling(length(plist)/2))
@@ -1412,28 +1415,32 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
 
 }
 
-#' Extract a confusion matrix from a binary glm object using the cutpoint
-#' that maximises the Youden Index (sensitivity+specificity).
+#' Extract a confusion matrix from a binary glm object. An optional cutpoint can
+#' be specified, otherwise the cutpoint that maximises the Youden index is used.
 #' Returns a confusion matrix from the caret package, with the cut-off added to the output list.
 #' @param glm_fit an glm object with family - 'binomial'
+#' @param cutpoint optional cutpoint for categories responses, must be between 0 and 1
 #' @export
-lr_cmat <- function(glm_fit){
+lr_cmat <- function(glm_fit,cutpoint){
   if (class(glm_fit)[1] !='glm') stop('glm_fit must be output from glm.')
   if (glm_fit$family$family !='binomial') stop('glm_fit must be a binary logistic regression.')
+  if (!missing(cutpoint)) if (cutpoint<=0 | cutpoint>=1) stop('cutpoint must be a number between 0 and 1.')
 
   ref = glm_fit$model[,1]
   if (is.null(levels(ref))) ref=factor(ref)
   pred_vals <- predict(glm_fit,type='response')
-  pred <- ROCR::prediction(pred_vals,ref)
-  perf_obj <- ROCR::performance(pred,"tpr","fpr")
-                   Youden = perf_obj@y.values[[1]]-perf_obj@x.values[[1]]
-                   cutoff = perf_obj@alpha.values[[1]]
-  cutpoint = cutoff[which.max(Youden)]
+  if (missing(cutpoint)){
+    pred <- ROCR::prediction(pred_vals,ref)
+    perf_obj <- ROCR::performance(pred,"tpr","fpr")
+    Youden = perf_obj@y.values[[1]]-perf_obj@x.values[[1]]
+    cutoff = perf_obj@alpha.values[[1]]
+    cutpoint = cutoff[which.max(Youden)]
+  }
 
   x = caret::confusionMatrix(data=factor(ifelse(pred_vals<cutpoint,levels(ref)[1],levels(ref)[2])),
-                         reference = ref,
-                         positive = levels(ref)[2])
-  x[['cut-off']] = cutpoint
+                             reference = ref,
+                             positive = levels(ref)[2])
+  x[['cutpoint']] = cutpoint
   x
 }
 
@@ -1503,7 +1510,7 @@ printConfStats <- function(confMtrx,digits=2,what=c(1,2,3,4,12),caption=NULL,tbl
 #'@export
 #'
 rm_ordsum <- function(data, covs, response, reflevel='NULL', caption = NULL, showN=T,
-                        mv=FALSE,excludeLevels=NULL,testPO=TRUE,digits=2,CIwidth=0.95){
+                      mv=FALSE,excludeLevels=NULL,testPO=TRUE,digits=2,CIwidth=0.95){
 
 
   rtn <- ordsum(data=data,
@@ -1549,6 +1556,7 @@ rm_ordsum <- function(data, covs, response, reflevel='NULL', caption = NULL, sho
 #'@param data dataframe containing data
 #'@param covs character vector with the names of columns to include in table
 #'@param maincov covariate to stratify table by
+#'@param digits number of digits to round results to, defaults to 1
 #'@param caption character containing table caption
 #'@param excludeLevels a named list of levels to exclude in the form list(varname =c('level1','level2')) these levels will be excluded from association tests
 #'@param showP boolean indicating if p values should be displayed (may only want corrected p-values)
@@ -1561,19 +1569,18 @@ rm_ordsum <- function(data, covs, response, reflevel='NULL', caption = NULL, sho
 #'@return A formatted table displaying a summary of the covariates stratified by maincov
 #'@export
 #'@seealso \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}
-rm_covsum <- function(data,covs,maincov=NULL,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,tableOnly=FALSE,covTitle='Covariate',
-                        chunk_label,...){
+rm_covsum <- function(data,covs,maincov=NULL,digits=1,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,tableOnly=FALSE,covTitle='Covariate',
+                      chunk_label,...){
 
-  tab <- covsum(data,covs,maincov,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,sanitize=FALSE,...)
-  if (is.null(maincov))
-    showP=FALSE
+  tab <- covsum(data,covs,maincov,digits=digits,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,sanitize=FALSE,...)
+  if (is.null(maincov)) {showP=FALSE}
   to_bold = numeric(0)
   if (showP) {
     # format p-values nicely
     p_vals <- tab[,ncol(tab)]
+    to_bold <- which(as.numeric(p_vals)<0.05)
     new_p <- sapply(p_vals,formatp)
     tab[,ncol(tab)] <- new_p
-    to_bold <- which(as.numeric(new_p)<0.05)
   } else {
     tab <- tab[,!names(tab) %in%'p-value']
   }

@@ -8,6 +8,7 @@ covsum(
   data,
   covs,
   maincov = NULL,
+  digits = 1,
   numobs = NULL,
   markup = TRUE,
   sanitize = TRUE,
@@ -25,6 +26,8 @@ covsum(
 \item{covs}{character vector with the names of columns to include in table}
 
 \item{maincov}{covariate to stratify table by}
+
+\item{digits}{the number of digits to round continuous variables to, defaults to 1}
 
 \item{numobs}{named list overriding the number of people you expect to have the covariate}
 

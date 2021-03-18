@@ -10,6 +10,7 @@ rm_covsum(
   data,
   covs,
   maincov = NULL,
+  digits = 1,
   caption = NULL,
   excludeLevels = NULL,
   showP = TRUE,
@@ -26,6 +27,8 @@ rm_covsum(
 \item{covs}{character vector with the names of columns to include in table}
 
 \item{maincov}{covariate to stratify table by}
+
+\item{digits}{number of digits to round results to, defaults to 1}
 
 \item{caption}{character containing table caption}
 
