@@ -707,6 +707,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
 ##model=fit;data=fit$model
 mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T,CIwidth=0.95,expnt=NULL)
 {
+  if (missing(data)) stop('data is not optional')
   if (!markup) {
     lbld <- identity
     addspace <- identity
