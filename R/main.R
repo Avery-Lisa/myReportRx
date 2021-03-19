@@ -1,3 +1,6 @@
+# TODO:
+# Explore flextable, but doesn't seem to work with compact table style in Word
+
 #' Plot KM curve
 #'
 #'This function will plot a KM curve with possible stratification. You can specifyif you want
@@ -1214,6 +1217,7 @@ plot_po_check <- function(polr.fit){
   responseOptions = levels(data[[response]])
   data$y = as.numeric(data[[response]])-1
 
+  for (v in 2:ncol(data)){ if(class(data[[v]])[1]=='character') data[[v]]<-factor(data[[v]]) }
   # Build the summary function for any response
   sfStr <- NULL
   for (i in 2:length(responseOptions)){
@@ -1225,10 +1229,11 @@ plot_po_check <- function(polr.fit){
   eval(parse(text=sfStr))
 
   f = paste('y~',paste(attr(fit$terms,'term.labels'),collapse = '+'))
-  s <- summary(as.formula(f),data=data,fun=sf)
+  s <- Hmisc:::summary.formula(as.formula(f),data=data,fun=sf)
   # remove any infinite values - users
   if (sum(is.infinite(s))>0) subtitle = '***Infinite estimates removed***' else subtitle=''
   s[is.infinite(s)] <- NA
+  as.matrix(s)
   plot(s,which=1:2,pch=1:2,xlab='logit',vnames='names',main=response, width.factor=1.5)
   mtext(subtitle)
 }
