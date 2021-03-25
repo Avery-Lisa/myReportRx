@@ -1,4 +1,8 @@
 
+#' Tidy rounding
+#' @param x figure to be rounded, can be a vector
+#' @param digits number of decimal places to display to, defaults to 2
+#' @export
 niceNum <- function(x,digits=2){
 
   rndx = sapply(x, function(x) {format(round(as.numeric(x),digits),nsmall=digits)})
