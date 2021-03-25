@@ -13,7 +13,6 @@ rm_mvsum(
   showN = T,
   tableOnly = FALSE,
   HolmGlobalp = FALSE,
-  expnt = NULL,
   chunk_label
 )
 }
@@ -29,8 +28,6 @@ rm_mvsum(
 \item{tableOnly}{boolean indicating if unformatted table should be returned}
 
 \item{HolmGlobalp}{boolean indicting if a Holm-corrected p-value should be presented}
-
-\item{expnt}{defaults to NULL can be set to FALSE for log and logit link models}
 
 \item{chunk_label}{only used if options("doc_type"='doc') is set allow cross-referencing}
 }

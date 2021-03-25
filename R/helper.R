@@ -69,8 +69,7 @@ matchcovariate <- function(betanames,ucall){
                                     fixed = T))
     out = sapply(splitbetaname, function(bname) {
       bname=gsub(" ","",bname)
-      indx = which(sapply(ucall, function(cov) grepl(cov,
-                                                     bname, fixed = TRUE)))
+      indx = which(sapply(ucall, function(cov) grepl(cov,bname, fixed = TRUE)))
       if (length(indx) == 1)
         return(indx)
       indx2 <- which.max(sapply(ucall[indx], nchar))
