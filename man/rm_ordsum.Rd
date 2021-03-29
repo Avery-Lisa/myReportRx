@@ -9,14 +9,13 @@ rm_ordsum(
   data,
   covs,
   response,
-  reflevel = "NULL",
+  reflevel,
   caption = NULL,
   showN = T,
-  mv = FALSE,
-  excludeLevels = NULL,
   testPO = TRUE,
   digits = 2,
-  CIwidth = 0.95
+  CIwidth = 0.95,
+  excludeLevels
 )
 }
 \arguments{
@@ -32,15 +31,13 @@ rm_ordsum(
 
 \item{showN}{logical, should sample sizes be shown for each lvel, defaults to TRUE}
 
-\item{mv}{logical indicating whether you want to summarise univariate analyses or a single model only mv=FALSE currently supported}
-
-\item{excludeLevels}{a named list of levels to exclude from factor variables. Currently, this has only been implemented for the response variable.}
-
 \item{testPO}{logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE}
 
 \item{digits}{number of digits to display, defaults to}
 
 \item{CIwidth}{level of significance for computing the confidence intervals, default is 0.95}
+
+\item{excludeLevels}{a named list of levels to exclude from the response variable}
 }
 \value{
 A formatted table displaying the odds ratio associated with each covariate

@@ -3,22 +3,20 @@
 \name{ordsum}
 \alias{ordsum}
 \title{Fit and format an ordinal logistic regression using polr from the {MASS} package. The parallel regression assumption can
-be tested using the Brant test in the Brant package and visually. Only logistic ordinal regression is supported currently.
-# Options to perform univariate or multivariate analysis.}
+be tested using the Brant test (modfied from the the Brant package).}
 \usage{
 ordsum(
   data,
   covs,
   response,
-  reflevel = "NULL",
+  reflevel,
   markup = FALSE,
   sanitize = TRUE,
   nicenames = TRUE,
-  mv = FALSE,
-  excludeLevels = NULL,
+  excludeLevels,
   testPO = TRUE,
   showN = TRUE,
-  digits = 2,
+  digits = 1,
   CIwidth = 0.95
 )
 }
@@ -37,11 +35,9 @@ ordsum(
 
 \item{nicenames}{booling indicating if you want to replace . and _ in strings with a space}
 
-\item{mv}{logical indicating whether you want to summarise univariate analyses or a single model}
+\item{excludeLevels}{a named list of levels to exclude from the response variable}
 
-\item{excludeLevels}{a named list of levels to exclude from factor variables. Currently, this has only been implemented for the response variable.}
-
-\item{testPO}{logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE}
+\item{testPO}{logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE, values greater than alpha are desirable.}
 
 \item{showN}{logical, should sample sizes be shown for each lvel, defaults to TRUE}
 
@@ -54,8 +50,7 @@ A formatted table displaying the odds ratio associated with each covariate
 }
 \description{
 Fit and format an ordinal logistic regression using polr from the {MASS} package. The parallel regression assumption can
-be tested using the Brant test in the Brant package and visually. Only logistic ordinal regression is supported currently.
-# Options to perform univariate or multivariate analysis.
+be tested using the Brant test (modfied from the the Brant package).
 }
 \keyword{Brant}
 \keyword{ordinal}
