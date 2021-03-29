@@ -404,10 +404,10 @@ getCombiCoefs <- function (model)
   }
   return(result)
 }
-# This is code from the brant package, with  this line of code:
 # WE NEED TO BE ATTRITBUTE TO THE ORIGINAL AUTHOR IF THIS IS POSTED ON CRAN!
 # Benjamin Schlegel, Marco Steenbergen
 # https://cran.r-project.org/web/packages/brant/brant.pdf
+# This is code from the brant package, with  this line of code:
 # result.matrix = print.testresult(model, X2, df.v, by.var)
 # replaced by the contents of brant:::print.testresult) to not print to screen
 # Changed: LA 16 December 2020 return the result matrix, and the number of empty cells separately in a list

@@ -522,16 +522,16 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
     adj_cov = paste('+',paste(adj_cov,collapse='+'))
   }
   out <- lapply(covs, function(x_var) {
-    testData <- dplyr::select(data,any_of(c(response,x_var,strataVar,adj_cov)))
-    testData <-na.omit(testData)
+    data <- dplyr::select(data,dplyr::any_of(c(response,x_var,strataVar,adj_cov)))
+    data <-na.omit(data)
     x_var_str <- x_var
     if (testing)
       print(x_var)
     if (is.factor(data[[x_var]])) {
 
-      testData[[x_var]] <- factor(testData[[x_var]],ordered = FALSE)
-      levelnames = sapply(sapply(sapply(levels(testData[[x_var]]),nicename),sanitizestr),addspace)
-      #levelnames <- sapply(sapply(sapply(levels(factor(testData[[x_var]])), nicename), sanitizestr), addspace)
+      data[[x_var]] <- factor(data[[x_var]],ordered = FALSE)
+      levelnames = sapply(sapply(sapply(levels(data[[x_var]]),nicename),sanitizestr),addspace)
+      #levelnames <- sapply(sapply(sapply(levels(factor(data[[x_var]])), nicename), sanitizestr), addspace)
       x_var_str <- lbld(sanitizestr(nicename(x_var)))
       title <- NULL
       body <- NULL
@@ -540,7 +540,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
         m2 <- coxph(as.formula(paste(paste("Surv(", response[1],
                                            ",", response[2], ")", sep = ""), "~", x_var,
                                      ifelse(strata == "", "", "+"), paste(strata,
-                                                                          collapse = "+"), sep = "")), data = testData)
+                                                                          collapse = "+"), sep = "")), data = data)
         hazardratio <- c("Reference", apply(matrix(summary(m2,conf.int=CIwidth)$conf.int[,
                                                                                          c(1, 3, 4)], ncol = 3), 1, psthr))
         pvalue <- c("", sapply(summary(m2,conf.int=CIwidth)$coef[, 5],
@@ -549,7 +549,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
       } else if (type == "crr") {
         if (adj_cov!='') stop('Adjustment covariates have not been implemented for competing risk models.')
         m2 <- crrRx(as.formula(paste(paste(response,
-                                           collapse = "+"), "~", x_var, sep = "")), data = testData)
+                                           collapse = "+"), "~", x_var, sep = "")), data = data)
         hazardratio <- c("Reference", apply(matrix(summary(m2,conf.int=CIwidth)$conf.int[,
                                                                                          c(1, 3, 4)], ncol = 3), 1, psthr))
         pvalue <- c("", sapply(summary(m2)$coef[, 5],
@@ -561,7 +561,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
         title <- c(x_var_str, "", "", lpvalue(globalpvalue))
       } else if (type == "logistic") {
         m2 <- glm(as.formula(paste(response, "~", x_var, ifelse(adj_cov=='','',adj_cov),
-                                   sep = "")), family = "binomial", data = testData)
+                                   sep = "")), family = "binomial", data = data)
         globalpvalue <- try(aod::wald.test(b = m2$coefficients[-1],
                                            Sigma = vcov(m2)[-1, -1], Terms = seq_len(length(m2$coefficients[-1])))$result$chi2[3])
         if (class(globalpvalue) == "try-error")
@@ -576,11 +576,11 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
       } else if (type == "linear" | type == "boxcox") {
         if (type == "linear") {
           m2 <- lm(as.formula(paste(response, "~", x_var,ifelse(adj_cov=='','',adj_cov),
-                                    sep = "")), data = testData)
+                                    sep = "")), data = data)
         } else {
           m2 <- boxcoxfitRx(as.formula(paste(response,
                                              "~", x_var, ifelse(adj_cov=='','',adj_cov),
-                                             sep = "")), data = testData)
+                                             sep = "")), data = data)
         }
         m <- summary(m2)$coefficients
         globalpvalue <- try(aod::wald.test(b = m2$coefficients[-1],
@@ -603,8 +603,8 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
       }
       out <- rbind(title, body)
       if (showN){
-        n_by_level = c(nrow(testData),
-                       as.vector(table(testData[[x_var]])))
+        n_by_level = c(nrow(data),
+                       as.vector(table(data[[x_var]])))
         out <- cbind(out,n_by_level)
       }
       rownames(out) <- NULL
@@ -661,7 +661,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
                                                                                                      2])), "", lpvalue(globalpvalue)), ncol = 4)
       }
       if (showN){
-        out<- cbind(out,nrow(testData))
+        out<- cbind(out,nrow(data))
       }
 
       return(list(out, nrow(out)))
@@ -893,7 +893,7 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
       } else{ss_N = c('',table(data[[oldcovname]]))}
     } else {ss_N = nrow(ss_data)}
     out <- cbind(out,ss_N)
-#    print(out)
+    #    print(out)
     rownames(out) <- NULL
     colnames(out) <- NULL
     return(list(out, nrow(out)))
@@ -915,8 +915,7 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
 
 
 #' Fit and format an ordinal logistic regression using polr from the {MASS} package. The parallel regression assumption can
-#' be tested using the Brant test in the Brant package and visually. Only logistic ordinal regression is supported currently.
-#' # Options to perform univariate or multivariate analysis.
+#' be tested using the Brant test (modfied from the the Brant package).
 #'@param data dataframe containing data [REQUIRED]
 #'@param covs character vector with the names of columns to include in table [REQUIRED]
 #'@param response ordinal outcome variable [REQUIRED]
@@ -924,20 +923,18 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
 #'@param markup boolean indicating if you want latex markup
 #'@param sanitize boolean indicating if you want to sanitize all strings to not break LaTeX
 #'@param nicenames booling indicating if you want to replace . and _ in strings with a space
-#'@param mv logical indicating whether you want to summarise univariate analyses or a single model
-#'@param excludeLevels a named list of levels to exclude from factor variables. Currently, this has only been implemented for the response variable.
-#'@param testPO logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE
+#'@param excludeLevels a named list of levels to exclude from the response variable
+#'@param testPO logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE, values greater than alpha are desirable.
 #'@param showN logical, should sample sizes be shown for each lvel, defaults to TRUE
 #'@param digits number of digits to display, defaults to
 #'@param CIwidth level of significance for computing the confidence intervals, default is 0.95
 #'@return A formatted table displaying the odds ratio associated with each covariate
 #'@keywords ordinal regression, Brant test
-#' @importFrom xtable xtable
 #' @importFrom MASS polr
 #'@export
 #'
-ordsum    <- function(data, covs, response,reflevel='NULL',markup=FALSE,sanitize=TRUE,nicenames=TRUE,
-                      mv=FALSE,excludeLevels=NULL,testPO=TRUE,showN=TRUE,digits=2,CIwidth=0.95){
+ordsum  <- function(data, covs, response,reflevel,markup=FALSE,sanitize=TRUE,nicenames=TRUE,
+                      excludeLevels,testPO=TRUE,showN=TRUE,digits=1,CIwidth=0.95){
 
   if (!markup) {
     lbld <- identity # not yet used
@@ -966,117 +963,99 @@ ordsum    <- function(data, covs, response,reflevel='NULL',markup=FALSE,sanitize
     sanitizestr <- identity
   if (!nicenames)
     nicename <- identity
-  if (!is.null(excludeLevels)){
+  if (!missing(excludeLevels)){
     if (response %in% names(excludeLevels)){
       to_remove = sapply(data[[response]],function (x) {x %in% excludeLevels[[response]]})
       data = data[!to_remove,]
     }
   }
-  if (!(mv)){
-    out <- lapply(covs, function(x_var) {
-      if (!is.null(excludeLevels[[x_var]])){
-        excluded_xvar = excludeLevels[[x_var]]
-      } else {
-        excluded_xvar = NULL
-      }
-      excluded_xvar <- c(excluded_xvar,names(table(data[[x_var]]))[table(data[[x_var]])==0])
-      if (length(excluded_xvar)>0){
-        testData = data[!(data[[x_var]] %in% excluded_xvar),]
-      } else{
-        testData = data
-      }
-
-      # if (class(testData[[x_var]])[1]=='ordered'){
-      #   testData[[x_var]] <- factor(testData[[x_var]],ordered = FALSE)
-      # }
-      polr.form = as.formula(paste(response,'~',x_var))
-      fit = MASS::polr(data=testData,polr.form,method='logistic',Hess = TRUE)
-      brant_test = try(modified_brant(fit,by.var=T),silent = T)
-      if (class(brant_test)[1] == "try-error") {
-        po_test_omni = data.frame(Covariate = x_var,"PO Test" = 'Not Tested')
-        zero_counts <- NA
-      } else {
-        po_test_omni = data.frame(Covariate=rownames(brant_test$result),brant_test$result)
-        po_test_omni$"PO Test" = formatp(po_test_omni$probability)
-        zero_counts <-brant_test$zero_count_cells
-      }
-      coef_tbl <- data.frame(summary(fit)$coef)
-      coef_tbl <- coef_tbl[grep(x_var,rownames(summary(fit)$coef)),]
-      coef_tbl$p_value <- pnorm(abs(coef_tbl$"t.value"), lower.tail = FALSE) * 2
-      coef_tbl$"p-value" = sapply(coef_tbl$p_value,lpvalue)
-      coef_tbl$OR <- exp(coef_tbl$"Value")
-      qstdN <- qnorm(p=1-(1-CIwidth)/2)
-      coef_tbl$LB <- exp(coef_tbl$"Value"-qstdN*coef_tbl$"Std..Error")
-      coef_tbl$UB <- exp(coef_tbl$"Value"+qstdN*coef_tbl$"Std..Error")
-      coef_tbl$"OR_CI" = paste0(niceNum(coef_tbl$OR,digits = digits),
-                                ' (',niceNum(coef_tbl$LB,digits = digits),
-                                ',',niceNum(coef_tbl$UB,digits = digits),')')
-      tbl <- cbind(Covariate=rownames(coef_tbl),data.frame(coef_tbl[,c(9,5)]))
-
-      if (class(testData[[x_var]])[1] %in% c("ordered", "factor" )){
-        brant_test_level = try(modified_brant(model=fit,by.var=F),silent = T)
-        if (class(brant_test_level)[1] == "try-error") {
-          po_test_level = data.frame(Covariate = tbl,"PO Test" = 'NT')
-        } else {
-          po_test_level = data.frame(cbind(brant_test_level$result,Covariate=rownames(brant_test_level$result)))
-          po_test_level$"PO Test" <- formatp(po_test_level$probability)
-          #          po_test_level$"PO Test"[po_test_level$"PO Test"=='1'] <- 'NT' # WHY DID I ADD THIS?
-        }
-
-        tbl$"PO Test" = sapply(tbl$Covariate, function(x) {po_test_level$"PO Test"[po_test_level$Covariate==x]})
-        tbl$Covariate = sub(x_var,'',tbl$Covariate)
-        reflevel=setdiff(levels(testData[[x_var]]),c(excluded_xvar,tbl$Covariate))
-        tbl <- rbind(c(reflevel,"Reference","",""),tbl)
-        nterms=length(fit$coefficients)
-        globalp <- try(aod::wald.test(Sigma=vcov(fit)[1:nterms,1:nterms],
-                                      b=fit$coefficients,Terms=1:nterms)$result$chi2[3],silent = T)
-        if (class(globalp)[1]=='try-error') globalp <- NA
-        tbl$"globalPval" = ''
-        tbl <- rbind(c(x_var,"","",
-                       po_test_omni$"PO Test"[po_test_omni$Covariate==x_var],
-                       lpvalue(globalp)),tbl)
-
-        n_by_level <- as.vector(sapply(tbl$Covariate[-1],FUN = function(x){ sum(fit$model[[x_var]]==x)}))
-        n_by_level <- c(sum(n_by_level),n_by_level)
-        tbl <- cbind(tbl,N=n_by_level)
-
-
-      } else {
-        tbl$"PO Test" = po_test_omni$"PO Test"[po_test_omni$Covariate==x_var]
-        tbl$"globalPval" = tbl$p.value
-        tbl$p.value <- ''
-
-        tbl <- cbind(tbl,N=nrow(fit$fitted.values))
-
-      }
-      tbl <- cbind(tbl,ZeroCount=c(zero_counts,rep(NA,nrow(tbl)-1)))
-      tbl <- tbl[,c(1,6,2,5,3,4,7)]
-      beta = betaWithCI('OR',CIwidth)
-      names(tbl) <- c("Covariate","N",sanitizestr(beta),"Global p-value","p-value","PO Test","ZeroCount")
-      return(tbl)
-    })
-    onetbl = do.call("rbind",out)
-    onetbl$Covariate <- nicename(onetbl$Covariate)
-
-    if (sum(onetbl$ZeroCount>0,na.rm=T)==0){
-      outtext <- "The proportional odds assumption is reasonable for all variables."
+  if (!missing(reflevel)){
+    data[[response]] <- relevel(data[[response]], ref=reflevel)
+  }
+  for (v in covs) { if (class(data[[v]])[1] %in% c('character','ordered')) data[[v]] <- factor(data[[v]],ordered=F)}
+  out <- lapply(covs, function(x_var) {
+    polr.form = as.formula(paste(response,'~',x_var))
+    fit = MASS::polr(data=data,polr.form,method='logistic',Hess = TRUE)
+    brant_test = try(modified_brant(fit,by.var=T),silent = T)
+    if (class(brant_test)[1] == "try-error") {
+      po_test_omni = data.frame(Covariate = x_var,"PO Test" = 'Not Tested')
+      zero_counts <- NA
     } else {
-      caution_star = rep('',nrow(onetbl))
-      caution_star[onetbl$ZeroCount>0] <- '*'
-      onetbl$`PO Test` <-  paste0(onetbl$`PO Test`,caution_star)
-      outtext <- "*Caution, proportional odds test performed with empty cells."
+      po_test_omni = data.frame(Covariate=rownames(brant_test$result),brant_test$result)
+      po_test_omni$"PO Test" = formatp(po_test_omni$probability)
+      zero_counts <-brant_test$zero_count_cells
     }
-  } # this is the end of the univariate analysis
+    coef_tbl <- data.frame(summary(fit)$coef)
+    coef_tbl <- coef_tbl[grep(x_var,rownames(summary(fit)$coef)),]
+    coef_tbl$p_value <- pnorm(abs(coef_tbl$"t.value"), lower.tail = FALSE) * 2
+    coef_tbl$"p-value" = sapply(coef_tbl$p_value,lpvalue)
+    coef_tbl$OR <- exp(coef_tbl$"Value")
+    qstdN <- qnorm(p=1-(1-CIwidth)/2)
+    coef_tbl$LB <- exp(coef_tbl$"Value"-qstdN*coef_tbl$"Std..Error")
+    coef_tbl$UB <- exp(coef_tbl$"Value"+qstdN*coef_tbl$"Std..Error")
+    coef_tbl$"OR_CI" = paste0(niceNum(coef_tbl$OR,digits = digits),
+                              ' (',niceNum(coef_tbl$LB,digits = digits),
+                              ',',niceNum(coef_tbl$UB,digits = digits),')')
+    tbl <- cbind(Covariate=rownames(coef_tbl),data.frame(coef_tbl[,c('OR_CI','p-value')]))
 
-  onetbl <- onetbl[,-7]
+    if (class(data[[x_var]])[1] %in% c("ordered", "factor" )){
+      brant_test_level = try(modified_brant(model=fit,by.var=F),silent = T)
+      if (class(brant_test_level)[1] == "try-error") {
+        po_test_level = data.frame(Covariate = tbl,"PO Test" = 'NT')
+      } else {
+        po_test_level = data.frame(cbind(brant_test_level$result,Covariate=rownames(brant_test_level$result)))
+        po_test_level$"PO Test" <- formatp(po_test_level$probability)
+        #          po_test_level$"PO Test"[po_test_level$"PO Test"=='1'] <- 'NT' # WHY DID I ADD THIS?
+      }
+
+      tbl$"PO Test" = sapply(tbl$Covariate, function(x) {po_test_level$"PO Test"[po_test_level$Covariate==x]})
+      tbl$Covariate = sub(x_var,'',tbl$Covariate)
+      reflevel=setdiff(levels(data[[x_var]]),c(excluded_xvar,tbl$Covariate))
+      tbl <- rbind(c(reflevel,"Reference","",""),tbl)
+      nterms=length(fit$coefficients)
+      globalp <- try(aod::wald.test(Sigma=vcov(fit)[1:nterms,1:nterms],
+                                    b=fit$coefficients,Terms=1:nterms)$result$chi2[3],silent = T)
+      if (class(globalp)[1]=='try-error') globalp <- NA
+      tbl$"globalPval" = ''
+      tbl <- rbind(c(x_var,"","",
+                     po_test_omni$"PO Test"[po_test_omni$Covariate==x_var],
+                     lpvalue(globalp)),tbl)
+
+      n_by_level <- as.vector(sapply(tbl$Covariate[-1], function(x){ sum(fit$model[[x_var]]==x)}))
+      n_by_level <- c(sum(n_by_level),n_by_level)
+      tbl <- cbind(tbl,N=n_by_level)
+
+
+    } else {
+      tbl$"PO Test" = po_test_omni$"PO Test"[po_test_omni$Covariate==x_var]
+      tbl$"globalPval" = tbl$p.value
+      tbl$p.value <- ''
+
+      tbl <- cbind(tbl,N=nrow(fit$fitted.values))
+
+    }
+    tbl <- cbind(tbl,ZeroCount=c(zero_counts,rep(NA,nrow(tbl)-1)))
+    tbl <- tbl[,c("Covariate","N","OR_CI","globalPval","p.value","PO Test","ZeroCount")]
+
+    names(tbl) <- c("Covariate","N","OR_CI","Global p-value","p-value","PO Test","ZeroCount")
+    return(tbl)
+  })
+  onetbl = do.call("rbind",out)
+  onetbl$Covariate <- nicename(onetbl$Covariate)
+
+  if (sum(onetbl$ZeroCount>0,na.rm=T)!=0){    warning("Caution, proportional odds test performed with empty cells.")  }
+
+  if (showN){
+    onetbl <- onetbl[,c("Covariate","N","OR_CI","Global p-value","p-value","PO Test")]
+  } else {     onetbl <- onetbl[,c("Covariate","OR_CI","Global p-value","p-value","PO Test")]}
   if (sum(onetbl$`p-value`=='')==nrow(onetbl)) {
-    onetbl <- onetbl[,-4]
-  }
-  if (!showN) {
-    onetbl <- onetbl[,-2]
+    onetbl <- onetbl[,which(names(onetbl)=='p-value')]
   }
 
-  return(list(onetbl,outtext))
+  beta = sanitizestr(betaWithCI('OR',CIwidth))
+  names(onetbl) <- gsub('OR_CI',beta,names(onetbl))
+  rownames(onetbl) <- NULL
+  return(onetbl)
 }
 
 
@@ -1360,17 +1339,16 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
 
   # strip tibble aspects
   tab=as.data.frame(tab)
+  rownames(tab) <- NULL
 
   out_fmt = ifelse(is.null(getOption('doc_type')),'pdf',getOption('doc_type'))
+  if (out_fmt=='tblOnly') {print(tab)}
+
   out_fmt =ifelse(out_fmt%in%c('doc','docx'),'doc','pdf')
   chunk_label = ifelse(missing(chunk_label),'NOLABELTOADD',chunk_label)
 
-  # set NA to empty in pander and kable
-  options(knitr.kable.NA = '')
-
   if (is.null(to_indent)) to_indent = numeric(0)
   to_indent = as.vector(to_indent)
-  rownames(tab) <- NULL
 
 
   if (out_fmt=='doc'){
@@ -1393,6 +1371,8 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
                      justify = paste(c('l',rep('r',ncol(tab)-1)),collapse = '',sep=''))
     }
   } else {
+    # set NA to empty in kable
+    options(knitr.kable.NA = '')
     if (nrow(tab)>30){
       kout <- knitr::kable(tab, booktabs=TRUE,
                            longtable=TRUE,
@@ -1506,39 +1486,34 @@ printConfStats <- function(confMtrx,digits=2,what=c(1,2,3,4,12),caption=NULL,tbl
 #'@param reflevel manual specification of the reference level, must match level exactly
 #'@param caption Table caption
 #'@param showN logical, should sample sizes be shown for each lvel, defaults to TRUE
-#'@param mv logical indicating whether you want to summarise univariate analyses or a single model only mv=FALSE currently supported
 #'@param excludeLevels a named list of levels to exclude from factor variables. Currently, this has only been implemented for the response variable.
 #'@param testPO logical, should the proportional odds (parallel regression) assumption be tested with the Brant test, defaults to TRUE
 #'@param digits number of digits to display, defaults to
 #'@param CIwidth level of significance for computing the confidence intervals, default is 0.95
+#'@param excludeLevels a named list of levels to exclude from the response variable
 #'@return A formatted table displaying the odds ratio associated with each covariate
 #'@keywords ordinal regression, Brant test
 #'@export
 #'
-rm_ordsum <- function(data, covs, response, reflevel='NULL', caption = NULL, showN=T,
-                      mv=FALSE,excludeLevels=NULL,testPO=TRUE,digits=2,CIwidth=0.95){
+rm_ordsum <- function(data, covs, response, reflevel,caption = NULL, showN=T,
+                      testPO=TRUE,digits=2,CIwidth=0.95,excludeLevels){
 
 
-  rtn <- ordsum(data=data,
+  tab <- ordsum(data=data,
                 covs=covs,
                 response=response,
                 reflevel=reflevel,
                 markup=FALSE,
                 sanitize=FALSE,
                 nicenames=T,
-                mv=FALSE,
-                excludeLevels=excludeLevels,
                 testPO=testPO,
                 showN=showN,
                 digits = digits,
-                CIwidth=CIwidth)
-  tab <- rtn[[1]]
-  if (mv){
-    type ='Multivariable'
-  } else type='Univariate'
+                CIwidth=CIwidth,
+                excludeLevels=excludeLevels)
 
   if (is.null(caption))
-    caption = paste(type,'ordinal logistic regression analysis of predictors of',nicename(response),'.')
+    caption = paste('Univariate ordinal logistic regression analysis of predictors of',nicename(response),'.')
 
   # format p-values nicely
   tab$`Global p-value` <- sapply(tab$`Global p-value`,formatp)
