@@ -234,7 +234,7 @@ petsum<-function(data,response,group=1,times=c(12,14),units="months"){
 }
 
 
-
+# TODO - store and report test-types
 #'Returns a dataframe corresponding to a descriptive table
 #'
 #'@param data dataframe containing data
@@ -263,7 +263,10 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
   if (length(missing_vars)>0){
     stop(paste('These covariates are not in the data:',missing_vars))
   }
+  # Convert character to factor
   for (v in c(maincov,covs)) if (class(data[[v]])[1]=='character') data[[v]] <- factor(data[[v]])
+  # Convert dichotomous to factor
+  for (v in covs) if (length(unique(data[[v]]))==2) data[[v]] <- factor(data[[v]])
   testcont <- match.arg(testcont)
   testcat <- match.arg(testcat)
   if(!markup){
@@ -298,7 +301,7 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       excludeLevel = excludeLevels[[cov]]
     } else excludeLevel = ''
 
-    #Set up the first coulmn
+    #Set up the first column
     factornames<-NULL
     if(is.null(numobs[[cov]]))  numobs[[cov]]<-nmaincov
     if(numobs[[cov]][1]-n>0) {ismiss=T
@@ -309,8 +312,8 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       factornames<-c(levels(data[[cov]]),factornames)
       if (!is.null(maincov)) {
         pdata = data[!(data[[cov]] %in% excludeLevel),]
-
-        p <- if( testcat=='Fisher'){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+        # Check for low counts and if found perform Fisher test
+        p <- if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]])<5)){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
         } else try(chisq.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
         if (class(p) == "try-error")
           p <- NA
@@ -1325,6 +1328,17 @@ niceTable <- function(tab,rmstr = "[._]",digits=2,to_indent=numeric(0),to_bold=n
 
 }
 
+# # TESTING
+# library(survival)
+# tab=survmedian_sum(time='time',status='status',
+#                group='sex',
+#                data = lung,
+#                tblOnly = T,
+#                caption='Median overall survival time (in days) by mutation type.')
+# grpLabel ='Group'
+# to_indent  <- which(xtbl[[grpLabel]] %in% levels(data[[group]]))
+# outTable(xtbl,to_indent,caption)
+
 #' The output function for the print methods
 #' Table output defaults to kable, but the kableExtra package doesn't work well with Word.
 #' To export nice tables to Word use options('doc_type'='doc')
@@ -1358,7 +1372,7 @@ outTable <- function(tab,to_indent=numeric(0),to_bold=numeric(0),caption=NULL,ch
       tab[is.na(tab)] <-'&nbsp;' # This is necessary to assign the 'Compact' style to empty cells
       tab[tab==''] <-'&nbsp;'
 
-      tab[[1]][to_indent] <- sapply(tab[[1]][to_indent],function(x) paste('&nbsp;&nbsp;',x))
+      if (length(to_indent)>0) tab[[1]][to_indent] <- sapply(tab[[1]][to_indent],function(x) paste('&nbsp;&nbsp;',x))
       if (length(to_bold)>0) {
         pander::pander(tab,
                        caption=caption,
@@ -1797,8 +1811,9 @@ survmedian_sum <- function(data,time,status,group,grpLabel='Group',digits=1,capt
   if (tblOnly){
     return(xtbl)
   }
-  to_indent  <- which(xtbl[[grpLabel]] %in% levels(data[[group]]))
-  outTable(xtbl,to_indent,caption)
+  # Needs Fixing
+  to_indent  <- which(xtbl[[group]] %in% levels(data[[group]]))
+  outTable(xtbl,to_indent=to_indent,caption=caption)
 
 }
 
@@ -1827,8 +1842,6 @@ survtime_sum <- function(data,time,status,group,survtimes,survtimeunit,grpLabel=
                            lbldtime = survtimesLbls)
   timelbl <- paste0('Time (',survtimeunit,')')
   names(survtimeLookup)[2] = timelbl
-  out_fmt <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-  if (is.null(out_fmt)) out_fmt='pdf'
 
   colsToExtract <- c(2:9,14,15)
   survtime_est <- NULL
@@ -1856,7 +1869,7 @@ survtime_sum <- function(data,time,status,group,survtimes,survtimeunit,grpLabel=
     }
     colnames(gtbl) <- names(gfit)[colsToExtract]
     gtbl <- as_tibble(gtbl)
-    survtime_est[[g]] <- gtbl
+    survtime_est[[as.character(g)]] <- gtbl
   }
   xtbl <- bind_rows(survtime_est,.id=grpLabel)
   xtbl$SR = niceNum(xtbl[["surv"]])
@@ -1878,7 +1891,7 @@ survtime_sum <- function(data,time,status,group,survtimes,survtimeunit,grpLabel=
     return(tab)
   }
   to_indent  <- which(!tab[[timelbl]] %in% c("Overall",levelnames))
-  outTable(tab,to_indent,caption)
+  outTable(tab,to_indent=to_indent,caption=caption)
 
 }
 
@@ -1916,3 +1929,28 @@ kable_stk_hdr <- function(data,head_col,to_col,caption=NULL,indent=TRUE,hdr_pref
 
   outTable(tab=data,to_indent=to_indent,caption=caption)
 }
+
+
+
+#-----In the Works -----------------------------------
+#------- robust mv regression
+# # Designed to mimic the output of my_mvsum
+# robustLM <- function(f,data,digits=2){
+#
+#   lm_fit <- eval(parse(text=paste('lm(',f,',data=data)')))
+#   lm_out <- my_mvsum(model=lm_fit,data=data,markup=F)
+#
+#   data_fit <- eval(parse(text=paste('MASS::rlm(',f,',data=data)')))
+#
+#   # robust SE
+#   out <- lmtest::coeftest(data_fit,vocv=vcovHC(data_fit,type="HC3"))
+#   out <- broom::tidy(out,conf.int=T)
+#   out$CI = paste0(niceNum(out$estimate,digits)," (",niceNum(out$conf.low,digits),",",niceNum(out$conf.high,digits),")")
+#   out$p_raw = out$p.value
+#   out$p_adj = p.adjust(out$p_raw)
+#   out$p_raw[1] <- out$p_adj[1] <- NA
+#   out$CI[out$term=="(Intercept)"] <- 'reference'
+#   out$Covariate = lm_out$Covariate[-1]
+#   names(out) = gsub('CI','Estimate(95\\%CI)',names(out))
+#   return(out[,c('Covariate','Estimate(95%CI)','p_raw','p_adj')])
+# }
