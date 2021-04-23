@@ -1623,7 +1623,7 @@ rm_covsum <- function(data,covs,maincov=NULL,digits=1,caption=NULL,excludeLevels
 rm_uvsum <- function(response, covs , data ,adj_cov=NULL, caption=NULL,showP=T,showN=T,tableOnly=FALSE,removeInf=T,HolmGlobalp=FALSE,chunk_label,...){
 
   # get the table
-  tab <- uvsum(response,covs,data,adj_cov=NULL,markup = FALSE,showN=showN,sanitize=FALSE,...)
+  tab <- uvsum(response,covs,data,adj_cov=adj_cov,markup = FALSE,showN=showN,sanitize=FALSE,...)
 
   cap_warn <- character(0)
   if (removeInf){
