@@ -313,7 +313,7 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       if (!is.null(maincov)) {
         pdata = data[!(data[[cov]] %in% excludeLevel),]
         # Check for low counts and if found perform Fisher test
-        p <- if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]])<5)){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+        p <- if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]]))<5){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
         } else try(chisq.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
         if (class(p) == "try-error")
           p <- NA
