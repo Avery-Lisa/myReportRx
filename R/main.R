@@ -5,13 +5,14 @@
 #' It will also search through for citations to R packages and include those,
 #' which can be useful to keep track of which version of a package was used.
 #' to R packages and
-#' @param bibfile a mater bib file contianing all the references in the document (Zotero or Mendeley).
+#' @param bibfile a master bib file contianing all the references in the document (Zotero or Mendeley).
+#' @param outfile a filename to write the bibfile to. If missing this will be the rmd file name with a bib extension
 #' @importFrom bib2df df2bib
 #' @importFrom knitr write_bib
 #' @importFrom rstudioapi getSourceEditorContext
 #' @keywords citations
 #' @export
-rmdBibfile <- function(bibfile){
+rmdBibfile <- function(bibfile,outfile){
   # First sanitise the specified bibfile
   if (!file.exists(bibfile)) stop(paste(bibfile,'does not exist.'))
 
@@ -54,7 +55,9 @@ rmdBibfile <- function(bibfile){
     } else warning(paste(p,'not in',bibfile,'\n'))
   }
 
-  bib_out = paste0(thisDir,gsub(".Rmd","",gsub(thisDir,"",thisFile)),".bib")
+  if (missing(outfile)){
+    bib_out = paste0(thisDir,gsub(".Rmd","",gsub(thisDir,"",thisFile)),".bib")
+  } else bib_out = paste0(thisDir,gsub(".bib","",outfile),".bib")
 
   # write R packages to bibfile and append remaining references
   if (length(Rpckgs)>0){
