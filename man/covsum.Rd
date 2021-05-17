@@ -17,6 +17,7 @@ covsum(
   digits.cat = 0,
   testcont = c("rank-sum test", "ANOVA"),
   testcat = c("Chi-squared", "Fisher"),
+  showTests = T,
   excludeLevels = NULL
 )
 }
@@ -44,6 +45,8 @@ covsum(
 \item{testcont}{test of choice for continuous variables, one of \emph{rank-sum} (default) or \emph{ANOVA}}
 
 \item{testcat}{test of choice for categorical variables, one of \emph{Chi-squared} (default) or \emph{Fisher}}
+
+\item{showTests}{boolean indicating if the type of statistical used should be shown in a column}
 
 \item{excludeLevels}{a named list of levels to exclude in the form list(varname =c('level1','level2')) these levels will be excluded from association tests}
 }

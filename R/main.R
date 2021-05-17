@@ -1,5 +1,75 @@
-# TODO:
-# Explore flextable, but doesn't seem to work with compact table style in Word
+#' Generate a bibfile for an Rmd document
+#'
+#' This function will search through the current Rmd document for citations and
+#' extract these from a central bib file to save as a file-specific bibfile.
+#' It will also search through for citations to R packages and include those,
+#' which can be useful to keep track of which version of a package was used.
+#' to R packages and
+#' @param bibfile a mater bib file contianing all the references in the document (Zotero or Mendeley).
+#' @importFrom bib2df df2bib
+#' @importFrom knitr write_bib
+#' @importFrom rstudioapi getSourceEditorContext
+#' @keywords citations
+#' @export
+rmdBibfile <- function(bibfile){
+  # First sanitise the specified bibfile
+  if (!file.exists(bibfile)) stop(paste(bibfile,'does not exist.'))
+
+  if (file.access(bibfile)==0){
+    bib <- bib_ReadGatherTidy(bibfile)
+  } else stop(paste('Can not access',bibfile))
+
+  # Replace some troublesome characters
+  bib$URL <- gsub("\\{\\\\_\\}","_", bib$URL)
+
+  # remove abstract, keywords
+  rm <- c(which(names(bib)=='ABSTRACT'),which(names(bib)=='KEYWORDS'))
+  if (length(rm) >0) bib <- bib[,-rm]
+
+  thisFile = rstudioapi::getSourceEditorContext()$path
+  if (thisFile=="") stop('Please save the current file before running writeBibFile.')
+  thisDir = dirname(thisFile)
+
+
+  # open current file and search for [@xx] entries
+  fileWords = scan(thisFile,what='character')
+  refs = fileWords[grep("\\[@.*\\]",fileWords)]
+  stripped = gsub("\\[|\\].*","",refs)
+  rRefs = stripped[grep("R-",stripped)]
+  otherRefs = setdiff(stripped,rRefs)
+  Rpckgs = gsub("@R-","",rRefs)
+  sepRefs = unlist(strsplit(otherRefs,";"))
+
+  tidyRefs <-gsub(".*@","",sepRefs)
+  tidyRefs <-gsub("[.]| .*|,","",tidyRefs)
+  libRefs = unique(tidyRefs)
+
+
+  # Extract the references from the master library
+  paperBib <- NULL
+  for ( p in libRefs){
+    ind = which(bib$BIBTEXKEY==p)
+    if (length(ind)>0) {
+      paperBib <- rbind(paperBib,bib[ind,])
+    } else warning(paste(p,'not in',bibfile,'\n'))
+  }
+
+  bib_out = paste0(thisDir,gsub(".Rmd","",gsub(thisDir,"",thisFile)),".bib")
+
+  # write R packages to bibfile and append remaining references
+  if (length(Rpckgs)>0){
+    add = TRUE
+    knitr::write_bib(Rpckgs,file =bib_out)
+  } else {add=FALSE}
+
+  if (!is.null(paperBib)){
+    bib2df::df2bib(paperBib,file = bib_out,append = add)
+  } else { if (add==FALSE) warning('No citations in current file to write')}
+
+
+}
+
+
 
 #' Plot KM curve
 #'
@@ -24,7 +94,7 @@
 #' plotkm(lung,c("time","status"),"sex")
 plotkm<-function(data,response,group=1,pos="bottomleft",units="months",CI=F,legend=T, title=""){
   if(class(group)=="numeric"){
-    kfit<-survfit(as.formula(paste("Surv(",response[1],",",response[2],")~1",sep="")),data=data)
+    kfit<-survfit(as.formula(paste("survival::Surv(",response[1],",",response[2],")~1",sep="")),data=data)
     sk<-summary(kfit)$table
     levelnames<-paste("N=",sk[1], ", Events=",sk[4]," (",round(sk[4]/sk[1],2)*100,"%)",sep="")
     if(title=="")  title<-paste("KM-Curve for ",nicename(response[2]),sep="")
@@ -34,10 +104,10 @@ plotkm<-function(data,response,group=1,pos="bottomleft",units="months",CI=F,lege
   }else{
     if(class(data[,group])!="factor")
       stop("group must be a vactor variable. (Or leave unspecified for no group)")
-    lr<-survdiff(as.formula(paste("Surv(",response[1],",",response[2],")~", paste(group,collapse="+"),sep="")),data=data)
+    lr<-survdiff(as.formula(paste("survival::Surv(",response[1],",",response[2],")~", paste(group,collapse="+"),sep="")),data=data)
     lrpv<-1-pchisq(lr$chisq, length(lr$n)- 1)
     levelnames<-levels(data[,group])
-    kfit<-survfit(as.formula(paste("Surv(",response[1],",",response[2],")~", paste(group,collapse="+"),sep="")),data=data)
+    kfit<-survfit(as.formula(paste("survival::Surv(",response[1],",",response[2],")~", paste(group,collapse="+"),sep="")),data=data)
     if(title=="") title<-paste("KM-Curve for ",nicename(response[2])," stratified by ", nicename(group),sep="")
     levelnames<-sapply(1:length(levelnames), function(x){paste(levelnames[x]," n=",lr$n[x],sep="")})
 
@@ -233,6 +303,20 @@ petsum<-function(data,response,group=1,times=c(12,14),units="months"){
   })
 }
 
+# # For testing
+# load(file='C:/Users/lisa/OneDrive - UHN/Hogan/CAPCR_20-5636.0.1/analysis/analysis_data.R')
+# all_vars <- c('Follow_Up','Treatment','Cytoreduction','Age','age_cat','ECOG','Stage','CCI','CCI_score','Albumin','Ascites','SurgToAC_days','Grade_III_IV_Compl','Cycles_Chemo','CA_125','CA_125_over_600','SCSintraop','BRCA','Paracentesis','Thoracentesis')
+# data=analysis_data
+# covs=all_vars
+# maincov='Treatment'
+# showP= FALSE
+# showTests=T
+# tableOnly = T
+# tab=covsum(data=analysis_data,
+#        covs=all_vars,
+#        maincov='Treatment',
+#        testcont='ANOVA',
+#        showTests=T)
 
 # TODO - store and report test-types
 #'Returns a dataframe corresponding to a descriptive table
@@ -249,13 +333,14 @@ petsum<-function(data,response,group=1,times=c(12,14),units="months"){
 #'@param digits.cat number of digits for the proportions when summarizing categorical data (default: 0)
 #'@param testcont test of choice for continuous variables, one of \emph{rank-sum} (default) or \emph{ANOVA}
 #'@param testcat test of choice for categorical variables, one of \emph{Chi-squared} (default) or \emph{Fisher}
+#'@param showTests boolean indicating if the type of statistical used should be shown in a column
 #'@param excludeLevels a named list of levels to exclude in the form list(varname =c('level1','level2')) these levels will be excluded from association tests
 #'@keywords dataframe
 #'@return A formatted table displaying a summary of the covariates stratified by maincov
 #'@export
 #'@seealso \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}
 covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitize=TRUE,nicenames=TRUE, IQR = FALSE, digits.cat = 0,
-                 testcont = c('rank-sum test','ANOVA'), testcat = c('Chi-squared','Fisher'),excludeLevels=NULL){
+                 testcont = c('rank-sum test','ANOVA'), testcat = c('Chi-squared','Fisher'),showTests=T,excludeLevels=NULL){
   # 26 Feb 2020 - start incorporating digits into the code
 
   # New LA 18 Feb, test for presence of variables in data and convert character to factor
@@ -267,8 +352,8 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
   for (v in c(maincov,covs)) if (class(data[[v]])[1]=='character') data[[v]] <- factor(data[[v]])
   # Convert dichotomous to factor
   for (v in covs) if (length(unique(data[[v]]))==2) data[[v]] <- factor(data[[v]])
-  testcont <- match.arg(testcont)
-  testcat <- match.arg(testcat)
+  testcont <- testcont[1]
+  testcat <- testcat[1]
   if(!markup){
     lbld<-identity
     addspace<-identity
@@ -313,10 +398,20 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       if (!is.null(maincov)) {
         pdata = data[!(data[[cov]] %in% excludeLevel),]
         # Check for low counts and if found perform Fisher test
-        p <- if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]]))<5){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
-        } else try(chisq.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
-        if (class(p) == "try-error")
-          p <- NA
+        if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]])<5)>0){
+          p_type <- 'Fisher Exact'
+          p <- try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+          if (class(p)[1]=='try-error'){
+            p <- try(fisher.test(pdata[[maincov]], pdata[[cov]],simulate.p.value =  T)$p.value,silent=T)
+            p_type <- 'MC sim'
+          }
+        } else {
+          p_type = 'Chi Sq'
+          p = try(chisq.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+        }
+        # p <- if( testcat=='Fisher' | sum(table(pdata[[maincov]], pdata[[cov]]))<5){ try(fisher.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+        # } else try(chisq.test(pdata[[maincov]], pdata[[cov]])$p.value,silent=T)
+        if (class(p) == "try-error") p <- NA
         p <- lpvalue(p)
       }
 
@@ -346,15 +441,31 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       #setup the first column
       factornames <- c("Mean (sd)", ifelse(IQR, "Median (Q1,Q3)", "Median (Min,Max)"), factornames)
       if (!is.null(maincov)) {
-        p <- if( testcont=='rank-sum test'){
+        if( testcont=='rank-sum test'){
           if( length(unique(data[[maincov]]))==2 ){
-            try( wilcox.test(data[[cov]] ~ data[[maincov]])$p.value )
-          } else try( kruskal.test(data[[cov]] ~ data[[maincov]])$p.value )
-        } else try(anova(lm(data[[cov]] ~ data[[maincov]]))[5][[1]][1])
-        if (class(p) == "try-error")
-          p <- NA
+            p_type = 'Wilcoxon Rank Sum'
+            p <- try( wilcox.test(data[[cov]] ~ data[[maincov]])$p.value )
+          } else {
+            p_type='Kruskal Wallis'
+            p <-try( kruskal.test(data[[cov]] ~ data[[maincov]])$p.value )
+          }
+        } else {
+          if( length(unique(data[[maincov]]))==2 ){
+            p_type = 't-test'
+            p <-try( t.test(data[[cov]] ~ data[[maincov]])$p.value )
+          } else {
+            p_type = 'ANOVA'
+            p <-try(anova(lm(data[[cov]] ~ data[[maincov]]))[5][[1]][1])
+          }}
+        # p <- if( testcont=='rank-sum test'){
+        #   if( length(unique(data[[maincov]]))==2 ){
+        #     try( wilcox.test(data[[cov]] ~ data[[maincov]])$p.value )
+        #   } else try( kruskal.test(data[[cov]] ~ data[[maincov]])$p.value )
+        # } else try(anova(lm(data[[cov]] ~ data[[maincov]]))[5][[1]][1])
+        if (class(p) == "try-error") p <- NA
         p <- lpvalue(p)
       }
+
       #set up the main columns
       onetbl <- mapply(function(sublevel,N){
         missing <- NULL
@@ -399,7 +510,7 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
       p_NA = rep("", nrow(onetbl) - 1)
       p_NA[factornames %in% excludeLevel] <-'excl'
       onetbl <- cbind(onetbl, c(p,p_NA))
-
+      if (showTests) onetbl <- cbind(onetbl, c(p_type,gsub('excl','',p_NA)))
     }else{
       onetbl<-rbind(c(lbld(sanitizestr(nicename(cov))),""),onetbl)
     }
@@ -411,18 +522,25 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
   table <- data.frame(apply(table,2,unlist), stringsAsFactors = FALSE)
   rownames(table)<-NULL
   if(!is.null(maincov)){
-    colnames(table)<-c("Covariate",paste("Full Sample (n=",N,")",sep=""),
+    colnm_table<-c("Covariate",paste("Full Sample (n=",N,")",sep=""),
                        mapply(function(x,y){paste(x," (n=",y,")",sep="")},
                               names(table(data[[maincov]])),table(data[[maincov]])),"p-value")
+    if (showTests) colnm_table <- c(colnm_table,'StatTest')
+    colnames(table) <- colnm_table
   }else{
     colnames(table)<-c("Covariate",paste("n=",N,sep=""))
-
   }
   colnames(table)<-sanitizestr(colnames(table))
   return(table)
 }
 
-
+# # For Testing
+# load(file="C:/Users/lisa/OneDrive - UHN/Ringash/analysis/ws.R")
+# data=t1_t2_chg
+# response=paste0(chg_vars,'_chg')[1]
+# adj_cov =  'Trt_Group'
+# covs = c('Age','T_staging')
+# x_var='T_staging'
 # # Problem:
 # # when spss data are imported with haven and converted to factors
 # # the code is.factor(test[,x_var]) returns FALSE
@@ -460,10 +578,13 @@ covsum<-function(data,covs,maincov=NULL,digits=1,numobs=NULL,markup=TRUE,sanitiz
 #'@param CIwidth width of confidence interval, default is 0.95
 #'This will allow you to see which model is not fitting if the function throws an error
 #'@keywords dataframe
+#' @importFrom survival coxph Surv
 #'@export
 uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, markup = T,
                    sanitize = T, nicenames = T, testing = F,showN=T,CIwidth=0.95)
 {
+# TODO: fix adjcov - right now the coefficients are shown (and shouldn't be!)
+  if (!is.null(adj_cov)) stop('Adjustments are not properly coded')
   # New LA 24 Feb, test for presence of variables in data and convert character to factor
   missing_vars = setdiff(c(response,covs),names(data))
   if (length(missing_vars)>0){
@@ -519,11 +640,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
   if (strata != "" & type != "coxph") {
     stop("strata can only be used with coxph")
   }
-  if (is.null(adj_cov)){
-    adj_cov=''
-  } else{
-    adj_cov = paste('+',paste(adj_cov,collapse='+'))
-  }
+  if (is.null(adj_cov)){adj_cov=''}
   out <- lapply(covs, function(x_var) {
     data <- dplyr::select(data,dplyr::any_of(c(response,x_var,strataVar,adj_cov)))
     data <-na.omit(data)
@@ -540,7 +657,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
       body <- NULL
       if (type == "coxph") {
         if (adj_cov!='') stop('Adjustment covariates should be specified as strata for coxph models.')
-        m2 <- coxph(as.formula(paste(paste("Surv(", response[1],
+        m2 <- survival::coxph(as.formula(paste(paste("survival::Surv(", response[1],
                                            ",", response[2], ")", sep = ""), "~", x_var,
                                      ifelse(strata == "", "", "+"), paste(strata,
                                                                           collapse = "+"), sep = "")), data = data)
@@ -563,7 +680,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
           globalpvalue <- "NA"
         title <- c(x_var_str, "", "", lpvalue(globalpvalue))
       } else if (type == "logistic") {
-        m2 <- glm(as.formula(paste(response, "~", x_var, ifelse(adj_cov=='','',adj_cov),
+        m2 <- glm(as.formula(paste(response, "~", x_var, ifelse(adj_cov=='','',paste('+',paste(adj_cov,collapse='+'))),
                                    sep = "")), family = "binomial", data = data)
         globalpvalue <- try(aod::wald.test(b = m2$coefficients[-1],
                                            Sigma = vcov(m2)[-1, -1], Terms = seq_len(length(m2$coefficients[-1])))$result$chi2[3])
@@ -578,11 +695,11 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
         title <- c(x_var_str, "", "", lpvalue(globalpvalue))
       } else if (type == "linear" | type == "boxcox") {
         if (type == "linear") {
-          m2 <- lm(as.formula(paste(response, "~", x_var,ifelse(adj_cov=='','',adj_cov),
+          m2 <- lm(as.formula(paste(response, "~", x_var,ifelse(adj_cov=='','',paste('+',paste(adj_cov,collapse='+'))),
                                     sep = "")), data = data)
         } else {
           m2 <- boxcoxfitRx(as.formula(paste(response,
-                                             "~", x_var, ifelse(adj_cov=='','',adj_cov),
+                                             "~", x_var, ifelse(adj_cov=='','',paste('+',paste(adj_cov,collapse='+'))),
                                              sep = "")), data = data)
         }
         m <- summary(m2)$coefficients
@@ -616,7 +733,7 @@ uvsum <- function (response, covs, data, adj_cov=NULL,type = NULL, strata = 1, m
     } else {
       x_var_str <- lbld(sanitizestr(nicename(x_var)))
       if (type == "coxph") {
-        m2 <- coxph(as.formula(paste(paste("Surv(", response[1],
+        m2 <- survival::coxph(as.formula(paste(paste("survival::Surv(", response[1],
                                            ",", response[2], ")", sep = ""), "~", x_var,
                                      ifelse(strata == "", "", "+"), paste(strata,
                                                                           collapse = "+"), sep = "")), data = data)
@@ -735,6 +852,7 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
   if (type=='lm'){
     betanames <- attributes(summary(model)$coef)$dimnames[[1]][-1]
     beta <- 'Estimate'
+    expnt = FALSE
     ss_data <- model$model
   } else if (type=='polr'){
     betanames <- names(model$coefficients)
@@ -760,12 +878,15 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
   } else if (type == "coxph" | type == "crr") {
     beta <- "HR"
     betanames <- attributes(summary(model)$coef)$dimnames[[1]]
-    ss_data <- model.frame(model$call$formula,eval(parse(text=paste('data=',deparse(model$call$data)))))
+    if(missing(data)) stop('must specify data in coxph models')
+    ss_data = data[as.numeric(names(model$residuals)),]
+    # ss_data <- model.frame(model$call$formula,eval(parse(text=paste('data=',deparse(model$call$data))))) # doesn't work from package envr
   } else {
     stop("type must be either polr, coxph, logistic, lm, crr, lme (or NULL)")
   }
 
-  if (missing(data)) if(class(ss_data)=='data.frame') {data=ss_data} else{ stop('data can not be derived from model')}
+  if('data.frame' %in% class(ss_data)) {data=ss_data} else{ stop('data can not be derived from model')}
+
 
   beta = betaWithCI(beta,CIwidth)
 
@@ -885,18 +1006,18 @@ mvsum <-function(model, data, showN = T, markup = T, sanitize = T, nicenames = T
     }
     out <- rbind(title, reference, body)
     # New sample size work
-    if (out[1,2]=="") {
+
+    if (out[1,2]=="") { # For factor variables
       if (length(grep(':',title[1]))>0){
         ss_N = c('',unlist(lapply(levelnameslist, function(level){
           N<-mapply(function(cn,lvl){
-            if (cn==lvl) {nrow(ss_data)} else {sum(ss_data[[cn]]==lvl)}
+            if (cn==lvl) {nrow(data)} else {sum(data[[cn]]==lvl)}
           },oldcovname,level)
           return(min(N))
         })))
       } else{ss_N = c('',table(data[[oldcovname]]))}
-    } else {ss_N = nrow(ss_data)}
+    } else {ss_N = nrow(data)} # For continuous variables
     out <- cbind(out,ss_N)
-    #    print(out)
     rownames(out) <- NULL
     colnames(out) <- NULL
     return(list(out, nrow(out)))
@@ -1212,7 +1333,7 @@ plot_po_check <- function(polr.fit){
   eval(parse(text=sfStr))
 
   f = paste('y~',paste(attr(fit$terms,'term.labels'),collapse = '+'))
-  s <- Hmisc:::summary.formula(as.formula(f),data=data,fun=sf)
+  s <- hmisc_summaryF(as.formula(f),data=data,fun=sf)
   # remove any infinite values - users
   if (sum(is.infinite(s))>0) subtitle = '***Infinite estimates removed***' else subtitle=''
   s[is.infinite(s)] <- NA
@@ -1558,6 +1679,7 @@ rm_ordsum <- function(data, covs, response, reflevel,caption = NULL, showN=T,
 #'@param excludeLevels a named list of levels to exclude in the form list(varname =c('level1','level2')) these levels will be excluded from association tests
 #'@param showP boolean indicating if p values should be displayed (may only want corrected p-values)
 #'@param showIQR boolean indicating if you want to display the inter quantile range (Q1,Q3) as opposed to (min,max) in the summary for continuous variables
+#'@param showTests boolean indicating if the type of statistical used should be shown in a column
 #'@param tableOnly should a dataframe or a formatted print object be returned
 #'@param covTitle character with the names of the covariate column
 #'@param chunk_label only used if options("doc_type"='doc') is set allow cross-referencing
@@ -1566,18 +1688,19 @@ rm_ordsum <- function(data, covs, response, reflevel,caption = NULL, showN=T,
 #'@return A formatted table displaying a summary of the covariates stratified by maincov
 #'@export
 #'@seealso \code{\link{fisher.test}}, \code{\link{chisq.test}}, \code{\link{wilcox.test}}, \code{\link{kruskal.test}}, and \code{\link{anova}}
-rm_covsum <- function(data,covs,maincov=NULL,digits=1,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,tableOnly=FALSE,covTitle='Covariate',
+rm_covsum <- function(data,covs,maincov=NULL,digits=1,caption=NULL,excludeLevels=NULL,showP=TRUE,showIQR=FALSE,showTests=FALSE,tableOnly=FALSE,covTitle='Covariate',
                       chunk_label,...){
 
-  tab <- covsum(data,covs,maincov,digits=digits,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,sanitize=FALSE,...)
+#  tab <- covsum(data,covs,maincov,digits=digits,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,showTests=showTests,sanitize=FALSE)
+  tab <- covsum(data,covs,maincov,digits=digits,markup=FALSE,excludeLevels=excludeLevels,IQR=showIQR,showTests=showTests,sanitize=FALSE,...)
   if (is.null(maincov)) {showP=FALSE}
   to_bold = numeric(0)
   if (showP) {
     # format p-values nicely
-    p_vals <- tab[,ncol(tab)]
+    p_vals <- tab[,'p-value']
     to_bold <- which(as.numeric(p_vals)<0.05)
     new_p <- sapply(p_vals,formatp)
-    tab[,ncol(tab)] <- new_p
+    tab[,'p-value'] <- new_p
   } else {
     tab <- tab[,!names(tab) %in%'p-value']
   }
@@ -1587,6 +1710,7 @@ rm_covsum <- function(data,covs,maincov=NULL,digits=1,caption=NULL,excludeLevels
     tab$Covariate <- gsub('[(]Q1,Q3[)]','(IQR)',tab$Covariate)
   }
   if (covTitle !='Covariate') names(tab[1]) <-covTitle
+  if (!showTests)     tab <- tab[,!names(tab) %in%'StatTest']
   if (tableOnly){
     return(tab)
   }
@@ -1777,16 +1901,16 @@ survmedian_sum <- function(data,time,status,group,grpLabel='Group',digits=1,capt
   out_fmt <- knitr::opts_knit$get("rmarkdown.pandoc.to")
   if (is.null(out_fmt))  out_fmt='pdf'
 
-  overall_fit <- survfit(as.formula(paste0("Surv(",time,',',status,') ~1')),
+  overall_fit <- survfit(as.formula(paste0("survival::Surv(",time,',',status,') ~1')),
                          data = data)
 
   otbl <- tibble::as_tibble(t(summary(overall_fit)$table))
   otbl[[grpLabel]] <- 'Overall'
   otbl$Expected <- NA
 
-  fit <- survfit(as.formula(paste0("Surv(",time,',',status,') ~',group)),
+  fit <- survfit(as.formula(paste0("survival::Surv(",time,',',status,') ~',group)),
                  data = data)
-  lr_test = survdiff(as.formula(paste0("Surv(",time,',',status,') ~',group)),
+  lr_test = survdiff(as.formula(paste0("survival::Surv(",time,',',status,') ~',group)),
                      data = data)
   grptbl <- tibble::as_tibble(summary(fit)$table,rownames=grpLabel)
   grptbl$Expected = lr_test$exp
@@ -1846,7 +1970,7 @@ survtime_sum <- function(data,time,status,group,survtimes,survtimeunit,grpLabel=
   colsToExtract <- c(2:9,14,15)
   survtime_est <- NULL
 
-  ofit<- summary(survfit(as.formula(paste0("Surv(",time,',',status,') ~1')),
+  ofit<- summary(survfit(as.formula(paste0("survival::Surv(",time,',',status,') ~1')),
                          data = data),times=survtimes)
   otbl <-NULL
   for (i in colsToExtract) {
@@ -1861,7 +1985,7 @@ survtime_sum <- function(data,time,status,group,survtimes,survtimeunit,grpLabel=
     levelnames <- levelnames[levelnames %in% unique(data[[group]])]
   } else  levelnames <- unique(data[[group]])
   for (g in levelnames){
-    gfit <- summary(survfit(as.formula(paste0("Surv(",time,',',status,') ~1')),
+    gfit <- summary(survfit(as.formula(paste0("survival::Surv(",time,',',status,') ~1')),
                             data = data[data[[group]]==g,]),times=survtimes,extend=T)
     gtbl <-NULL
     for (i in colsToExtract) {

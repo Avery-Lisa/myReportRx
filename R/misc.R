@@ -75,19 +75,20 @@ getSubSample <-function(data,group,p=.5){
   return(subsample)
 }
 
-#' Return columns numbers corresponding to excel columns headers
-#'
-#' @param excelColumns character vector of excel column names
-#' @param maxCol max number of columns in the excel sheet
-#' @export
-excelCol <- function(excelColumns,maxCol=250){
-  colNames = LETTERS
-  i=1
-  while (length(colNames)<maxCol){
-    colNames <- c(colNames,paste0(LETTERS[i],LETTERS))
-    i=i+1
-  }
-  excelColIndex = data.frame(colName = colNames,
-                             colNumber = 1:length(colNames))
-  excelColIndex$colNumber[excelColIndex$colName %in% excelColumns]
-}
+## OLD - see new function in helper.R
+#' #' Return columns numbers corresponding to excel columns headers
+#' #'
+#' #' @param excelColumns character vector of excel column names
+#' #' @param maxCol max number of columns in the excel sheet
+#' #' @export
+#' excelCol <- function(excelColumns,maxCol=250){
+#'   colNames = LETTERS
+#'   i=1
+#'   while (length(colNames)<maxCol){
+#'     colNames <- c(colNames,paste0(LETTERS[i],LETTERS))
+#'     i=i+1
+#'   }
+#'   excelColIndex = data.frame(colName = colNames,
+#'                              colNumber = 1:length(colNames))
+#'   excelColIndex$colNumber[excelColIndex$colName %in% excelColumns]
+#' }

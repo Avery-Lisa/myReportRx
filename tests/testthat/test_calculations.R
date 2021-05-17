@@ -33,7 +33,7 @@ test_that("covsum calculates correctly with maincov", {
   output = covsum(data=lung,
                   maincov='Status',
                   covs=c('Sex','wt.loss','OneLevelFactor'),
-                  markup=F)
+                  markup=F,showTests=F)
   expect_equal(names(output) ,c("Covariate","Full Sample (n=228)","0 (n=63)","1 (n=165)","p-value") )
   expect_equal(output$Covariate , c("Sex","Male","Female","wt loss","Mean (sd)","Median (Min,Max)","Missing","OneLevelFactor","one level"))
   expect_equal(output[,3],c("","26 (41)","37 (59)","","9.1 (12.9)","4 (-10,49)","1","","63 (100)"))

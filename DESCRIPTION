@@ -9,6 +9,7 @@ Encoding: UTF-8
 LazyData: true
 Imports: 
     aod,
+    bib2df,
     dplyr,
     ggplot2,
     ggpubr,
@@ -27,7 +28,11 @@ Imports:
     tibble,
     geoR,
     cmprsk,
-    ROCR
+    ROCR,
+    rlang,
+    rstudioapi,
+    stringr,
+    humaniformat
 RoxygenNote: 7.1.1
 Suggests: 
     testthat (>= 3.0.0)

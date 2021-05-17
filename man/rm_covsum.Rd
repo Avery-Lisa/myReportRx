@@ -15,6 +15,7 @@ rm_covsum(
   excludeLevels = NULL,
   showP = TRUE,
   showIQR = FALSE,
+  showTests = FALSE,
   tableOnly = FALSE,
   covTitle = "Covariate",
   chunk_label,
@@ -37,6 +38,8 @@ rm_covsum(
 \item{showP}{boolean indicating if p values should be displayed (may only want corrected p-values)}
 
 \item{showIQR}{boolean indicating if you want to display the inter quantile range (Q1,Q3) as opposed to (min,max) in the summary for continuous variables}
+
+\item{showTests}{boolean indicating if the type of statistical used should be shown in a column}
 
 \item{tableOnly}{should a dataframe or a formatted print object be returned}
 
