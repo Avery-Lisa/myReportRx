@@ -57,7 +57,7 @@ rmdBibfile <- function(bibfile,outfile){
 
   if (missing(outfile)){
     bib_out = paste0(thisDir,gsub(".Rmd","",gsub(thisDir,"",thisFile)),".bib")
-  } else bib_out = paste0(thisDir,gsub(".bib","",outfile),".bib")
+  } else bib_out = paste0(thisDir,"/",gsub(".bib","",outfile),".bib")
 
   # write R packages to bibfile and append remaining references
   if (length(Rpckgs)>0){
